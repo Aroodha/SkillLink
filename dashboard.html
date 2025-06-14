@@ -2,98 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - SkillLink</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    .badge {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: red;
-      color: white;
-      font-size: 12px;
-      border-radius: 9999px;
-      padding: 2px 6px;
-    }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
-<body class="bg-gray-100">
-  <!-- Header -->
+<body class="bg-gray-100 min-h-screen">
   <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
-    <h1 class="text-2xl font-bold">Dashboard</h1>
-    <div class="flex items-center space-x-3 relative">
-      <a href="explore.html" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Explore Community</a>
-      <a href="notifications.html" class="relative bg-yellow-400 hover:bg-yellow-500 text-purple-900 px-4 py-2 rounded">
-        Notifications
-        <span id="notifBadge" class="badge hidden">0</span>
-      </a>
-      <a href="chat.html" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">Go to Chat</a>
-      <button id="logoutBtn" class="bg-white text-purple-700 px-4 py-2 rounded hover:bg-gray-200">Logout</button>
-    </div>
+    <h1 class="text-2xl font-bold">SkillLink Dashboard</h1>
+    <button id="logoutBtn" class="bg-white text-purple-700 px-4 py-2 rounded">Logout</button>
   </header>
 
-  <!-- Main Content -->
-  <main class="p-6 max-w-4xl mx-auto">
-    <!-- Add Skill Form -->
-    <section class="bg-white p-6 rounded-xl shadow mb-6">
-      <h2 class="text-xl font-semibold mb-4">Add Your Skill</h2>
-      <form id="skillForm" class="space-y-4">
-        <input type="text" id="title" placeholder="Skill Title" class="w-full border p-2 rounded" required>
-        <textarea id="description" placeholder="Skill Description" class="w-full border p-2 rounded" required></textarea>
-        <select id="category" class="w-full border p-2 rounded" required>
-          <option value="">Select Category</option>
-          <option value="Coding">Coding</option>
-          <option value="Gardening">Gardening</option>
-          <option value="Music">Music</option>
-          <option value="Art">Art</option>
-          <option value="Tutoring">Tutoring</option>
-          <option value="Plumbing">Plumbing</option>
-          <option value="Carpentry">Carpentry</option>
-          <option value="Cooking">Cooking</option>
-          <option value="Yoga">Yoga</option>
-          <option value="Fitness">Fitness</option>
-          <option value="Photography">Photography</option>
-          <option value="Mechanics">Mechanics</option>
-          <option value="Beauty">Beauty</option>
-          <option value="Design">Design</option>
-          <option value="Writing">Writing</option>
-        </select>
-        <select id="exchange" class="w-full border p-2 rounded" required>
-          <option value="">Select Exchange Mode</option>
-          <option value="Free">Free</option>
-          <option value="Barter">Barter</option>
-          <option value="Paid">Paid</option>
-        </select>
-        <input type="text" id="location" placeholder="Your Location (e.g., Bengaluru)" class="w-full border p-2 rounded" required>
-        <input type="tel" id="phone" placeholder="Contact Number" class="w-full border p-2 rounded" required>
-        <button type="submit" class="bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800">Submit Skill</button>
-      </form>
-    </section>
+  <main class="p-6 max-w-5xl mx-auto space-y-6">
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <a href="post-skill.html" class="bg-white p-6 rounded-xl shadow hover:bg-purple-100">
+        <h2 class="text-xl font-semibold">Post a Skill</h2>
+        <p class="text-gray-600">Share your skill with the community.</p>
+      </a>
 
-    <!-- Posted Skills Table -->
-    <section class="bg-white p-6 rounded-xl shadow">
-      <h2 class="text-xl font-semibold mb-4">Your Posted Skills</h2>
-      <table class="w-full table-auto text-left">
-        <thead>
-          <tr>
-            <th class="border-b p-2">Title</th>
-            <th class="border-b p-2">Category</th>
-            <th class="border-b p-2">Location</th>
-          </tr>
-        </thead>
-        <tbody id="skillsTableBody"></tbody>
-      </table>
+      <a href="explore.html" class="bg-white p-6 rounded-xl shadow hover:bg-purple-100">
+        <h2 class="text-xl font-semibold">Explore Community</h2>
+        <p class="text-gray-600">Find skills you want to learn.</p>
+      </a>
+
+      <a href="my-skills.html" class="bg-white p-6 rounded-xl shadow hover:bg-purple-100">
+        <h2 class="text-xl font-semibold">My Skills</h2>
+        <p class="text-gray-600">Manage your posted skills.</p>
+      </a>
+
+      <a href="notifications.html" class="bg-white p-6 rounded-xl shadow hover:bg-purple-100">
+        <h2 class="text-xl font-semibold">Notifications</h2>
+        <p class="text-gray-600">Check skill requests and updates.</p>
+      </a>
     </section>
   </main>
 
-  <!-- Firebase + Logic -->
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
-    import { getFirestore, collection, addDoc, query, where, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js';
-    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAsN_D_C2zgjFJXVeyjw2TEygrAKBeERgI",
       authDomain: "skilllink-ba28d.firebaseapp.com",
@@ -104,84 +50,18 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let currentUser = null;
-
-    onAuthStateChanged(auth, async user => {
+    onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "login.html";
-      } else {
-        currentUser = user;
-        loadPostedSkills();
-        loadUnreadNotifications();
       }
     });
 
-    // Logout
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      signOut(auth).then(() => {
-        window.location.href = "login.html";
-      });
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
     });
-
-    // Skill Submission
-    document.getElementById("skillForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const title = document.getElementById("title").value;
-      const description = document.getElementById("description").value;
-      const category = document.getElementById("category").value;
-      const exchange = document.getElementById("exchange").value;
-      const location = document.getElementById("location").value;
-      const phone = document.getElementById("phone").value;
-
-      try {
-        await addDoc(collection(db, "skills"), {
-          userId: currentUser.uid,
-          userName: currentUser.displayName,
-          title, description, category, exchange, location, phone,
-          timestamp: Date.now()
-        });
-        alert("Skill submitted successfully!");
-        document.getElementById("skillForm").reset();
-        loadPostedSkills(); // Refresh
-      } catch (error) {
-        alert("Error submitting skill: " + error.message);
-      }
-    });
-
-    // Load Skills
-    async function loadPostedSkills() {
-      const q = query(collection(db, "skills"), where("userId", "==", currentUser.uid));
-      const snapshot = await getDocs(q);
-      const tbody = document.getElementById("skillsTableBody");
-      tbody.innerHTML = "";
-      snapshot.forEach(doc => {
-        const skill = doc.data();
-        tbody.innerHTML += `
-          <tr>
-            <td class="border-b p-2">${skill.title}</td>
-            <td class="border-b p-2">${skill.category}</td>
-            <td class="border-b p-2">${skill.location}</td>
-          </tr>`;
-      });
-    }
-
-    // Load Notifications Count
-    function loadUnreadNotifications() {
-      const notifBadge = document.getElementById("notifBadge");
-      const notifRef = query(
-        collection(db, "notifications"),
-        where("toUserId", "==", currentUser.uid),
-        where("read", "==", false)
-      );
-      onSnapshot(notifRef, snapshot => {
-        const count = snapshot.size;
-        notifBadge.textContent = count;
-        notifBadge.classList.toggle("hidden", count === 0);
-      });
-    }
   </script>
 </body>
 </html>

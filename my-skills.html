@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Skills - SkillLink</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-100">
+  <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">My Posted Skills</h1>
+    <a href="dashboard.html" class="bg-white text-purple-700 px-4 py-2 rounded">Back to Dashboard</a>
+  </header>
+
+  <main class="p-6 max-w-4xl mx-auto">
+    <section class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-4">Your Skills</h2>
+      <div id="mySkillsList" class="space-y-4 text-gray-800">Loading...</div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAsN_D_C2zgjFJXVeyjw2TEygrAKBeERgI",
+      authDomain: "skilllink-ba28d.firebaseapp.com",
+      projectId: "skilllink-ba28d",
+      storageBucket: "skilllink-ba28d.appspot.com",
+      messagingSenderId: "499782186172",
+      appId: "1:499782186172:web:5f53271bc7185d2405ccb9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const mySkillsList = document.getElementById("mySkillsList");
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        mySkillsList.innerHTML = "<p>Please login to view your skills.</p>";
+        return;
+      }
+
+      const q = query(collection(db, "skills"), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      mySkillsList.innerHTML = "";
+
+      if (querySnapshot.empty) {
+        mySkillsList.innerHTML = "<p>No skills posted yet.</p>";
+        return;
+      }
+
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const skillDiv = document.createElement("div");
+        skillDiv.className = "p-4 border rounded shadow bg-gray-50";
+
+        skillDiv.innerHTML = `
+          <h3 class="text-lg font-semibold">${data.title}</h3>
+          <p>${data.description}</p>
+          <p class="text-sm text-gray-600">Category: ${data.category} | Exchange: ${data.exchange}</p>
+          <p class="text-sm text-gray-600">Location: ${data.location || 'N/A'}</p>
+          <button class="mt-2 bg-red-600 text-white px-3 py-1 rounded delete-btn">Delete</button>
+        `;
+
+        skillDiv.querySelector(".delete-btn").addEventListener("click", async () => {
+          if (confirm("Delete this skill?")) {
+            await deleteDoc(doc(db, "skills", docSnap.id));
+            skillDiv.remove();
+          }
+        });
+
+        mySkillsList.appendChild(skillDiv);
+      });
+    });
+  </script>
+</body>
+</html>

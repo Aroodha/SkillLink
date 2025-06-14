@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Post Skill - SkillLink</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Post a Skill</h1>
+    <a href="dashboard.html" class="bg-white text-purple-700 px-4 py-2 rounded hover:bg-purple-200">Back to Dashboard</a>
+  </header>
+
+  <main class="max-w-3xl mx-auto p-6 bg-white mt-6 rounded-xl shadow flex-grow">
+    <form id="postSkillForm" class="space-y-4 mb-6">
+      <input type="text" id="title" placeholder="Skill Title" class="w-full border p-2 rounded" required />
+      <textarea id="description" placeholder="Skill Description" class="w-full border p-2 rounded" required></textarea>
+      <select id="category" class="w-full border p-2 rounded" required>
+        <option value="">Select Category</option>
+        <option value="Coding">Coding</option>
+        <option value="Gardening">Gardening</option>
+        <option value="Music">Music</option>
+        <option value="Art">Art</option>
+        <option value="Tutoring">Tutoring</option>
+        <option value="Plumbing">Plumbing</option>
+        <option value="Cooking">Cooking</option>
+      </select>
+      <select id="exchange" class="w-full border p-2 rounded" required>
+        <option value="">Select Exchange Type</option>
+        <option value="Free">Free</option>
+        <option value="Barter">Barter</option>
+        <option value="Paid">Paid</option>
+      </select>
+      <input type="text" id="location" placeholder="Your Location" class="w-full border p-2 rounded" />
+      <input type="tel" id="phone" placeholder="Contact Number (optional)" class="w-full border p-2 rounded" />
+      <button type="submit" class="bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800">Post Skill</button>
+    </form>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-3">My Posted Skills</h2>
+      <ul id="mySkillsList" class="space-y-4">
+        <li>Loading...</li>
+      </ul>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      where,
+      getDocs,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAsN_D_C2zgjFJXVeyjw2TEygrAKBeERgI",
+      authDomain: "skilllink-ba28d.firebaseapp.com",
+      projectId: "skilllink-ba28d",
+      storageBucket: "skilllink-ba28d.appspot.com",
+      messagingSenderId: "499782186172",
+      appId: "1:499782186172:web:5f53271bc7185d2405ccb9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser = null;
+
+    function renderSkill(skill) {
+      const li = document.createElement("li");
+      li.className = "border p-4 rounded shadow bg-gray-50";
+      li.innerHTML = `
+        <h3 class="font-bold text-lg">${skill.title}</h3>
+        <p class="text-sm mb-1">${skill.description}</p>
+        <p><strong>Category:</strong> ${skill.category} | <strong>Exchange:</strong> ${skill.exchange}</p>
+        ${skill.location ? `<p><strong>Location:</strong> ${skill.location}</p>` : ""}
+        ${skill.phone ? `<p><strong>Phone:</strong> ${skill.phone}</p>` : ""}
+      `;
+      return li;
+    }
+
+    async function loadMySkills(userId) {
+      const mySkillsList = document.getElementById("mySkillsList");
+      mySkillsList.innerHTML = "<li>Loading...</li>";
+
+      try {
+        // Query without orderBy to avoid Firestore index error
+        const skillsQuery = query(
+          collection(db, "skills"),
+          where("userId", "==", userId)
+        );
+        const querySnapshot = await getDocs(skillsQuery);
+
+        mySkillsList.innerHTML = "";
+
+        if (querySnapshot.empty) {
+          mySkillsList.innerHTML = "<li>No skills posted yet.</li>";
+          return;
+        }
+
+        querySnapshot.forEach(doc => {
+          const skill = doc.data();
+          skill.id = doc.id;
+          const skillElement = renderSkill(skill);
+          mySkillsList.appendChild(skillElement);
+        });
+      } catch (error) {
+        mySkillsList.innerHTML = `<li class="text-red-500">Error loading skills: ${error.message}</li>`;
+      }
+    }
+
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        alert("Login required");
+        window.location.href = "login.html";
+        return;
+      }
+
+      currentUser = user;
+
+      loadMySkills(user.uid);
+
+      const form = document.getElementById("postSkillForm");
+      form.addEventListener("submit", async e => {
+        e.preventDefault();
+        const submitButton = form.querySelector("button[type=submit]");
+        submitButton.disabled = true;
+
+        try {
+          const skillData = {
+            title: form.title.value.trim(),
+            description: form.description.value.trim(),
+            category: form.category.value,
+            exchange: form.exchange.value,
+            location: form.location.value.trim(),
+            phone: form.phone.value.trim(),
+            userId: user.uid,
+            userName: user.displayName || "User",
+            timestamp: serverTimestamp()
+          };
+
+          await addDoc(collection(db, "skills"), skillData);
+
+          form.reset();
+
+          await loadMySkills(user.uid);
+
+        } catch (error) {
+          alert("Error posting skill: " + error.message);
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
