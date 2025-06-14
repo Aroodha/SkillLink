@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkillLink Login</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-200 h-screen flex items-center justify-center">
+
+  <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-md w-full">
+    <img src="assets/logo.png" alt="SkillLink Logo" class="w-24 h-24 mx-auto mb-4"/>
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">Welcome to SkillLink</h1>
+    <p class="text-gray-600 mb-6">Connect. Learn. Exchange skills in your community.</p>
+    <button id="loginBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg flex items-center justify-center mx-auto">
+      <img src="https://img.icons8.com/color/16/000000/google-logo.png" class="mr-2"/>
+      Sign in with Google
+    </button>
+    <img src="assets/community-illustration.png" alt="Community" class="mt-6 w-full rounded-md"/>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDaMyp__ldDpIL_1KVzHGzDIGqfqRisrTo",
+      authDomain: "skilllink-b6e95.firebaseapp.com",
+      projectId: "skilllink-b6e95",
+      storageBucket: "skilllink-b6e95.appspot.com",
+      messagingSenderId: "770516669705",
+      appId: "1:770516669705:web:76cbfcb78b0d4be5662fd8"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    const db = getFirestore(app);
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+          // First time login
+          await setDoc(userRef, {
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
+            joinedAt: serverTimestamp(),
+            lastLogin: serverTimestamp()
+          });
+          alert("Welcome to SkillLink, " + user.displayName + "!");
+        } else {
+          // Returning user, update last login only
+          await setDoc(userRef, {
+            lastLogin: serverTimestamp()
+          }, { merge: true });
+          alert("Welcome back, " + user.displayName + "!");
+        }
+
+        // Optional: redirect to dashboard
+        // window.location.href = "dashboard.html";
+
+      } catch (error) {
+        console.error("Login failed:", error);
+        alert("Login failed: " + error.message);
+      }
+    });
+  </script>
+</body>
+</html>
