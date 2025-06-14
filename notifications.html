@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Notifications - SkillLink</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
 <body class="bg-gray-100">
   <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
@@ -12,8 +12,8 @@
     <a href="dashboard.html" class="bg-white text-purple-700 px-4 py-2 rounded">Back to Dashboard</a>
   </header>
 
-  <main class="p-6 max-w-4xl mx-auto">
-    <div id="notificationsList" class="space-y-4"></div>
+  <main class="max-w-3xl mx-auto p-6 bg-white mt-6 rounded-xl shadow">
+    <ul id="notificationsList" class="divide-y divide-gray-300"></ul>
   </main>
 
   <script type="module">
@@ -23,9 +23,10 @@
       collection,
       query,
       where,
-      getDocs,
-      updateDoc,
-      doc
+      orderBy,
+      onSnapshot,
+      doc,
+      updateDoc
     } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
     import {
       getAuth,
@@ -47,33 +48,51 @@
 
     const notificationsList = document.getElementById("notificationsList");
 
-    onAuthStateChanged(auth, async user => {
-      if (!user) {
-        window.location.href = "login.html";
-        return;
-      }
-      const q = query(collection(db, "notifications"), where("toUserId", "==", user.uid));
-      const snapshot = await getDocs(q);
+    let currentUser = null;
 
-      snapshot.forEach(async docSnap => {
-        const data = docSnap.data();
-
-        const card = document.createElement("div");
-        card.className = "bg-white p-4 rounded-xl shadow flex justify-between items-center";
-        card.innerHTML = `
-          <div>
-            <p><strong>New request</strong> for skill: ${data.skillTitle}</p>
-            <p class="text-sm text-gray-600">From User: ${data.fromUserId}</p>
-          </div>
-          <a href="chat.html?roomId=${data.chatRoomId}" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Go to Chat</a>
-        `;
-        notificationsList.appendChild(card);
-
-        if (!data.read) {
-          await updateDoc(doc(db, "notifications", docSnap.id), { read: true });
-        }
-      });
+    onAuthStateChanged(auth, user => {
+      if (!user) return location.href = "login.html";
+      currentUser = user;
+      loadNotifications();
     });
+
+    function loadNotifications() {
+      const notificationsRef = collection(db, "notifications");
+      const q = query(
+        notificationsRef,
+        where("userId", "==", currentUser.uid),
+        orderBy("timestamp", "desc")
+      );
+
+      onSnapshot(q, snapshot => {
+        notificationsList.innerHTML = "";
+        if (snapshot.empty) {
+          notificationsList.innerHTML = `<li class="p-4 text-gray-500">No notifications</li>`;
+          return;
+        }
+
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const li = document.createElement("li");
+          li.className = `p-4 cursor-pointer ${data.read ? "bg-gray-100" : "bg-purple-100 font-semibold"}`;
+
+          li.addEventListener("click", async () => {
+            if (!data.read) {
+              await updateDoc(doc(db, "notifications", docSnap.id), { read: true });
+            }
+            window.location.href = `chat.html?roomId=${data.chatId}`;
+          });
+
+          const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString() : "";
+          li.innerHTML = `
+            <div><strong>${data.senderName || "Someone"}</strong> - ${data.message}</div>
+            <div class="text-xs text-gray-600 mt-1">${time}</div>
+          `;
+
+          notificationsList.appendChild(li);
+        });
+      });
+    }
   </script>
 </body>
 </html>

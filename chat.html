@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Chat - SkillLink</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
 <body class="bg-gray-100">
   <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
@@ -87,12 +87,39 @@
     sendBtn.addEventListener("click", async () => {
       const message = messageInput.value.trim();
       if (!message) return;
+
+      // Add message to Firestore
       await addDoc(collection(db, "chats", roomId, "messages"), {
         senderId: currentUser.uid,
         message,
         timestamp: serverTimestamp()
       });
+
+      // Clear input
       messageInput.value = "";
+
+      // Fetch chat room doc to find the other user
+      const chatDocRef = doc(db, "chats", roomId);
+      const chatDocSnap = await getDoc(chatDocRef);
+
+      if (chatDocSnap.exists()) {
+        const chatData = chatDocSnap.data();
+        // Assuming chatData.users is an array of the two user IDs in the chat
+        const otherUserId = chatData.users.find(uid => uid !== currentUser.uid);
+
+        if (otherUserId) {
+          // Create a notification for the other user
+          await addDoc(collection(db, "notifications"), {
+            userId: otherUserId,
+            senderId: currentUser.uid,
+            senderName: currentUser.displayName || "User",
+            message: `${currentUser.displayName || "Someone"} sent you a message`,
+            chatId: roomId,
+            read: false,
+            timestamp: serverTimestamp()
+          });
+        }
+      }
     });
   </script>
 </body>
