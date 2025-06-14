@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explore Community - SkillLink</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Explore Community</h1>
+    <a href="dashboard.html" class="bg-white text-purple-700 px-4 py-2 rounded">Dashboard</a>
+  </header>
+
+  <main class="p-6 max-w-6xl mx-auto">
+    <!-- Filters -->
+    <section class="bg-white p-4 rounded-xl shadow mb-6">
+      <h2 class="text-xl font-semibold mb-4">Filter Skills</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <select id="filterCategory" class="border p-2 rounded">
+          <option value="">All Categories</option>
+          <option value="Coding">Coding</option>
+          <option value="Gardening">Gardening</option>
+          <option value="Music">Music</option>
+          <option value="Art">Art</option>
+          <option value="Tutoring">Tutoring</option>
+          <option value="Plumbing">Plumbing</option>
+          <option value="Carpentry">Carpentry</option>
+          <option value="Cooking">Cooking</option>
+          <option value="Yoga">Yoga</option>
+          <option value="Fitness">Fitness</option>
+          <option value="Photography">Photography</option>
+          <option value="Mechanics">Mechanics</option>
+          <option value="Beauty">Beauty</option>
+          <option value="Design">Design</option>
+          <option value="Writing">Writing</option>
+        </select>
+        <select id="filterExchange" class="border p-2 rounded">
+          <option value="">All Exchanges</option>
+          <option value="Free">Free</option>
+          <option value="Barter">Barter</option>
+          <option value="Paid">Paid</option>
+        </select>
+        <input type="text" id="filterLocation" placeholder="Location (e.g., Bengaluru)" class="border p-2 rounded">
+        <button id="applyFilters" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Apply Filters</button>
+      </div>
+    </section>
+
+    <!-- Skill List -->
+    <section class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-xl font-bold mb-4">Available Skills</h2>
+      <div id="exploreList" class="space-y-4"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, query, addDoc, where,
+      doc as docRef, setDoc, getDoc
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAsN_D_C2zgjFJXVeyjw2TEygrAKBeERgI",
+      authDomain: "skilllink-ba28d.firebaseapp.com",
+      projectId: "skilllink-ba28d",
+      storageBucket: "skilllink-ba28d.appspot.com",
+      messagingSenderId: "499782186172",
+      appId: "1:499782186172:web:5f53271bc7185d2405ccb9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUserId = null;
+    onAuthStateChanged(auth, user => {
+      if (user) currentUserId = user.uid;
+    });
+
+    document.getElementById("applyFilters").addEventListener("click", loadSkills);
+
+    async function loadSkills() {
+      const exploreList = document.getElementById("exploreList");
+      exploreList.innerHTML = "Loading...";
+
+      const category = document.getElementById("filterCategory").value;
+      const exchange = document.getElementById("filterExchange").value;
+      const location = document.getElementById("filterLocation").value.toLowerCase();
+
+      const q = query(collection(db, "skills"));
+      const querySnapshot = await getDocs(q);
+      exploreList.innerHTML = "";
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (
+          (!category || data.category === category) &&
+          (!exchange || data.exchange === exchange) &&
+          (!location || (data.location && data.location.toLowerCase().includes(location)))
+        ) {
+          const skillCard = document.createElement("div");
+          skillCard.className = "p-4 border rounded shadow";
+
+          skillCard.innerHTML = `
+            <h3 class="text-lg font-semibold">${data.title}</h3>
+            <p>${data.description}</p>
+            <p class="text-sm text-gray-600">Category: ${data.category} | Exchange: ${data.exchange}</p>
+            <p class="text-sm text-gray-600">Location: ${data.location || 'Not specified'}</p>
+            <p class="text-sm text-gray-600">Contact: ${data.phone || 'Not provided'}</p>
+            <p class="text-sm text-gray-600">By: ${data.userName || 'Unknown'}</p>
+            <button class="mt-2 bg-green-600 text-white px-3 py-1 rounded request-btn">Request Skill</button>
+          `;
+
+          skillCard.querySelector(".request-btn").addEventListener("click", async () => {
+            if (!currentUserId) {
+              alert("Please login to send a request.");
+              return;
+            }
+
+            // Step 1: Add request
+            await addDoc(collection(db, "requests"), {
+              skillId: doc.id,
+              skillTitle: data.title,
+              ownerId: data.userId,
+              requesterId: currentUserId,
+              timestamp: Date.now()
+            });
+
+            // Step 2: Send notification
+            await addDoc(collection(db, "notifications"), {
+              toUserId: data.userId,
+              fromUserId: currentUserId,
+              skillId: doc.id,
+              skillTitle: data.title,
+              timestamp: Date.now(),
+              read: false
+            });
+
+            // Step 3: Create chat room
+            const chatId = [currentUserId, data.userId].sort().join("_");
+            const chatRef = docRef(db, "chats", chatId);
+            const chatSnap = await getDoc(chatRef);
+
+            if (!chatSnap.exists()) {
+              await setDoc(chatRef, {
+                users: [currentUserId, data.userId],
+                messages: [],
+                createdAt: Date.now()
+              });
+            }
+
+            alert("Request sent, notification delivered, and chat room created!");
+          });
+
+          exploreList.appendChild(skillCard);
+        }
+      });
+    }
+
+    loadSkills(); // Load initially
+  </script>
+</body>
+</html>

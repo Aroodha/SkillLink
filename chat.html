@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat - SkillLink</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Chat Room</h1>
+    <a href="dashboard.html" class="bg-white text-purple-700 px-4 py-2 rounded">Back to Dashboard</a>
+  </header>
+
+  <main class="p-6 max-w-4xl mx-auto">
+    <div class="bg-white p-4 rounded-xl shadow">
+      <div id="chatBox" class="h-80 overflow-y-auto mb-4 p-2 border rounded bg-gray-50"></div>
+      <div class="flex space-x-2">
+        <input type="text" id="messageInput" placeholder="Type your message..." class="flex-1 border p-2 rounded">
+        <button id="sendBtn" class="bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-800">Send</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      onSnapshot,
+      query,
+      where,
+      orderBy,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import {
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAsN_D_C2zgjFJXVeyjw2TEygrAKBeERgI",
+      authDomain: "skilllink-ba28d.firebaseapp.com",
+      projectId: "skilllink-ba28d",
+      storageBucket: "skilllink-ba28d.appspot.com",
+      messagingSenderId: "499782186172",
+      appId: "1:499782186172:web:5f53271bc7185d2405ccb9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get("roomId");
+    if (!roomId) {
+      alert("No chat room specified.");
+      throw new Error("No roomId in URL");
+    }
+
+    const chatBox = document.getElementById("chatBox");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    let currentUser = null;
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        alert("Please log in to chat.");
+        window.location.href = "login.html";
+      } else {
+        currentUser = user;
+        listenToMessages();
+      }
+    });
+
+    async function listenToMessages() {
+      const q = query(
+        collection(db, "chats", roomId, "messages"),
+        orderBy("timestamp", "asc")
+      );
+      onSnapshot(q, snapshot => {
+        chatBox.innerHTML = "";
+        snapshot.forEach(doc => {
+          const msg = doc.data();
+          const msgDiv = document.createElement("div");
+          msgDiv.className = `p-2 my-1 rounded ${msg.senderId === currentUser.uid ? "bg-purple-200 text-right" : "bg-gray-200 text-left"}`;
+          msgDiv.innerHTML = `<strong>${msg.senderName}:</strong> ${msg.text}`;
+          chatBox.appendChild(msgDiv);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        });
+      });
+    }
+
+    sendBtn.addEventListener("click", async () => {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      await addDoc(collection(db, "chats", roomId, "messages"), {
+        text,
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || "User",
+        timestamp: serverTimestamp()
+      });
+      messageInput.value = "";
+    });
+
+    messageInput.addEventListener("keypress", e => {
+      if (e.key === "Enter") sendBtn.click();
+    });
+  </script>
+</body>
+</html>

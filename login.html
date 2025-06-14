@@ -19,19 +19,20 @@
     <img src="assets/community-illustration.png" alt="Community" class="mt-6 w-full rounded-md"/>
   </div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK and App Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
+    // Your Firebase Config
     const firebaseConfig = {
-      apiKey: "AIzaSyDaMyp__ldDpIL_1KVzHGzDIGqfqRisrTo",
-      authDomain: "skilllink-b6e95.firebaseapp.com",
-      projectId: "skilllink-b6e95",
-      storageBucket: "skilllink-b6e95.appspot.com",
-      messagingSenderId: "770516669705",
-      appId: "1:770516669705:web:76cbfcb78b0d4be5662fd8"
+      apiKey: "AIzaSyAsN_D_C2zgjFJXVeyjw2TEygrAKBeERgI",
+      authDomain: "skilllink-ba28d.firebaseapp.com",
+      projectId: "skilllink-ba28d",
+      storageBucket: "skilllink-ba28d.firebasestorage.app",
+      messagingSenderId: "499782186172",
+      appId: "1:499782186172:web:5f53271bc7185d2405ccb9"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -48,30 +49,24 @@
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-          // First time login
           await setDoc(userRef, {
             uid: user.uid,
             displayName: user.displayName,
             email: user.email,
             photoURL: user.photoURL,
-            joinedAt: serverTimestamp(),
-            lastLogin: serverTimestamp()
+            joinedAt: serverTimestamp()
           });
           alert("Welcome to SkillLink, " + user.displayName + "!");
         } else {
-          // Returning user, update last login only
-          await setDoc(userRef, {
-            lastLogin: serverTimestamp()
-          }, { merge: true });
           alert("Welcome back, " + user.displayName + "!");
         }
 
-        // Optional: redirect to dashboard
-        // window.location.href = "dashboard.html";
+        // Later: Redirect to dashboard
+         window.location.href = "dashboard.html";
 
       } catch (error) {
-        console.error("Login failed:", error);
         alert("Login failed: " + error.message);
+        console.error("Login failed:", error);
       }
     });
   </script>

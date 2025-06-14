@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notifications - SkillLink</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <header class="bg-purple-700 text-white px-6 py-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Notifications</h1>
+    <a href="dashboard.html" class="bg-white text-purple-700 px-4 py-2 rounded">Back to Dashboard</a>
+  </header>
+
+  <main class="p-6 max-w-4xl mx-auto">
+    <section class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-xl font-bold mb-4">Skill Request Notifications</h2>
+      <div id="notificationsList" class="space-y-4 text-gray-800">Loading...</div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      orderBy,
+      updateDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAsN_D_C2zgjFJXVeyjw2TEygrAKBeERgI",
+      authDomain: "skilllink-ba28d.firebaseapp.com",
+      projectId: "skilllink-ba28d",
+      storageBucket: "skilllink-ba28d.appspot.com",
+      messagingSenderId: "499782186172",
+      appId: "1:499782186172:web:5f53271bc7185d2405ccb9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      const list = document.getElementById("notificationsList");
+      if (!user) {
+        list.innerHTML = "<p>Please login to see notifications.</p>";
+        return;
+      }
+
+      const q = query(
+        collection(db, "notifications"),
+        where("toUserId", "==", user.uid),
+        orderBy("timestamp", "desc")
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        list.innerHTML = "<p>No notifications found.</p>";
+        return;
+      }
+
+      list.innerHTML = "";
+
+      querySnapshot.forEach(async (notif) => {
+        const data = notif.data();
+        const notifCard = document.createElement("div");
+        notifCard.className = "p-4 border-l-4 border-yellow-500 bg-yellow-50 rounded shadow";
+
+        const timestamp = data.timestamp?.toDate?.() || new Date();
+        const formattedTime = new Date(timestamp).toLocaleString();
+
+        notifCard.innerHTML = `
+          <p><strong>📬 Skill Request:</strong> Someone requested <em>${data.skillTitle}</em></p>
+          <p class="text-sm text-gray-600">🕒 ${formattedTime}</p>
+          ${data.chatRoomId ? `
+            <a href="chat.html?roomId=${data.chatRoomId}" class="mt-2 inline-block bg-purple-600 text-white px-4 py-1 rounded hover:bg-purple-700">
+              Go to Chat
+            </a>` : `
+            <p class="text-sm text-red-600 mt-2">⚠️ Chat room not found</p>`}
+        `;
+
+        list.appendChild(notifCard);
+
+        if (!data.read) {
+          await updateDoc(doc(db, "notifications", notif.id), { read: true });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
